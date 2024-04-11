@@ -14,28 +14,32 @@ class TwoBodyProblem:
     t0 = 0.0
     t1 = 100.0
     dt = 0.0001
+    expensive_energy_tracking = True
     expensive_angular_momentum_tracking = True
+    expensive_eccentricity_tracking = True
 
     # The following attributes
     # are monkey-patched in. Big arrays are held for
     # platting after the integration.
     #
-    #     x           (instantaneous state)
-    #     dxdt        (instantaneous derivative of state)
-    #     E           (instantaneous energy)
-    #     L           (instantaneous angular momentum)
+    #     x               (instantaneous state)
+    #     dxdt            (instantaneous derivative of state)
+    #     E               (instantaneous energy)
+    #     L               (instantaneous angular-momentum vector)
+    #     e               (instantaneous eccentricity vector)
     #
-    #     times       (all sampled time points)
-    #     states      (all states)
-    #     energies    (all energies)
-    #     angmoms     (all angular momenta)
+    #     times           (all sampled time points)
+    #     states          (all states)
+    #     energies        (all energies)
+    #     angmoms         (all angular-momentum vectors)
+    #     eccentricities  (all eccentricity vectors)
 
     def circular_period(self):
         separation = np.linalg.norm(self.R1 - self.R2)
         m1 = self.masses[0]
         m2 = self.masses[1]
         result = 2 * np.pi * np.sqrt(separation ** 3 \
-                                     / self.G * (m1 + m2))
+                                     / (self.G * (m1 + m2)))
         return result
 
     def instantaneous_angular_momentum(self):
@@ -44,6 +48,19 @@ class TwoBodyProblem:
         L1 = m1 * np.cross(self.R1, self.V1)
         L2 = m2 * np.cross(self.R2, self.V2)
         result = L1 + L2
+        return result
+
+    def instantaneous_eccentricity_vector(self):
+        G = self.G
+        m1 = self.masses[0]
+        m2 = self.masses[1]
+        M = m1 + m2
+        r1 = self.R1 - self.R2
+        r = np.linalg.norm(r1)
+        v1 = self.V1 - self.V2
+        p1 = np.cross(v1, np.cross(r1, v1)) / (G * M)
+        p2 = r1 / r
+        result = p1 - p2
         return result
 
     def instantaneous_energy(self) -> float:

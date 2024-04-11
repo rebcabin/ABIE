@@ -16,13 +16,16 @@ def my_timeit(name):
 
 def test_two_body_problem():
     two_body = TwoBodyProblem()
-    two_body.t1 = 15.0
+    two_body.t1 = 100.0
     two_body.expensive_angular_momentum_tracking = False
 
     with my_timeit('two_body_problem.solve') as euler_time:
         two_body.integrate_euler()
 
-    print(f'\nIntegration time: {euler_time()} seconds')
+    print(f'\nIntegration wall-clock time: {euler_time()} seconds')
+    print(f'Simulation time of last step: {two_body.times[-1]} == {two_body.t1} seconds')
+    print(f'orbital period in time units: {two_body.circular_period()}')
+    print(f'number of orbits: {two_body.times[-1] / two_body.circular_period()}s')
 
     two_body.plot_trajectory()
     two_body.plot_energies()
