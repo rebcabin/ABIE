@@ -3,24 +3,6 @@ from matplotlib import pyplot as plt
 from dataclasses import dataclass, field
 
 
-def two_particle_derivatives(x: np.ndarray,
-                             t_: float,
-                             params: dict) -> np.ndarray:
-    """Book calls this 'ode_two_body_first_order.'
-    Ignore t.'"""
-    G = params['G']
-    masses = params['masses']
-    dxdt = np.zeros(len(x))
-    R1 = x[0:3]
-    R2 = x[3:6]
-    r3 = np.linalg.norm(R2 - R1) ** 3
-    dxdt[0:3] = x[6:9]
-    dxdt[3:6] = x[9:12]
-    dxdt[6:9] = - G * masses[0] * (R1 - R2) / r3
-    dxdt[9:12] = - G * masses[1] * (R2 - R1) / r3
-    return dxdt
-
-
 @dataclass
 class TwoBodyProblem:
     R1 = np.array([1., 0., 0.])
