@@ -143,8 +143,8 @@ class TwoBodyProblem:
     def integrate_fixed_time_step(self, stepper):
         self._init_fixed_time_step()
         for e, t in enumerate(self.times):
-            self._propagate_state(t)
             stepper(t)
+            self._propagate_state(t)
             self.states[e, :] = self.x
             if self.expensive_energy_tracking:
                 self.energies[e] = self.E
