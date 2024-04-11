@@ -56,7 +56,6 @@ class Integrator(object):
         self.__initialized = False
         self.__device_id = deviceID
 
-
         # =============== C Library =============
         self.libabie = CLibABIE()
 
@@ -160,7 +159,7 @@ class Integrator(object):
         Integrate the system to a given time.
         :param to_time: The termination time. If None, it will use the self.t_end value, and the code will be stopped
                         when reaching self.t_end (i.e. if this function is called without argument, it can only be called
-                        once; but if it is called with a to_time argument specificed, then it can be called iteratively.
+                        once; but if it is called with a to_time argument specified, then it can be called iteratively).
         :return:
         """
         if to_time is not None:

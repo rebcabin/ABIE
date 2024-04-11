@@ -24,7 +24,12 @@ sim.acceleration_method = "ctypes"
 
 me_ms = 3.0e-6  # mass ratio between the Earth and the Sun
 
-sim.particles.add(mass=0.0898, pos=(0.0, 0.0, 0.0), vel=(0.0, 0.0, 0.0), name="star")
+sim.particles.add(
+    mass=0.0898,
+    pos=(0.0, 0.0, 0.0),
+    vel=(0.0, 0.0, 0.0),
+    name="star",
+)
 sim.particles.add(
     mass=1.374 * me_ms,
     a=0.01154,
