@@ -89,26 +89,35 @@ class TwoBodyProblem:
         self.dxdt[9:12] = \
             - self.G * self.masses[1] \
             * (self.R2 - self.R1) / r3
-        self.E = self.instantaneous_energy()
+        if self.expensive_energy_tracking:
+            self.E = self.instantaneous_energy()
+        if self.expensive_eccentricity_tracking:
+            self.e = self.instantaneous_eccentricity_vector()
         if self.expensive_angular_momentum_tracking:
             self.L = self.instantaneous_angular_momentum()
 
     def _init_euler(self):
         # instantaneous quantities
         self.x = np.concatenate((self.R1, self.R2, self.V1, self.V2))
-        self.E = self.instantaneous_energy()
         self.L = self.instantaneous_angular_momentum()
+        self.e = self.instantaneous_eccentricity_vector()
+        self.E = self.instantaneous_energy()
         state_len = len(self.x)
-        angmom_len = 3
         self.dxdt = np.zeros(state_len)
         # plottable arrays
         self.npts = int((self.t1 - self.t0) / self.dt) + 1
         self.times = np.linspace(self.t0, self.t1, self.npts)
         self.states = np.zeros((self.npts, state_len))
         self.states[0, :] = self.x
-        self.energies = np.zeros(self.npts)
-        self.energies[0] = self.E
+        if self.expensive_energy_tracking:
+            self.energies = np.zeros(self.npts)
+            self.energies[0] = self.E
+        if self.expensive_eccentricity_tracking:
+            eccentricity_vector_len = 3
+            self.eccentricities = np.zeros((self.npts, eccentricity_vector_len))
+            self.eccentricities[0] = self.e
         if self.expensive_angular_momentum_tracking:
+            angmom_len = 3
             self.angmoms = np.zeros((self.npts, angmom_len))
             self.angmoms[0, :] = self.L
 
@@ -121,7 +130,10 @@ class TwoBodyProblem:
             self._propagate_state()
             self._step_euler()
             self.states[e, :] = self.x
-            self.energies[e] = self.E
+            if self.expensive_energy_tracking:
+                self.energies[e] = self.E
+            if self.expensive_angular_momentum_tracking:
+                self.eccentricities[e] = self.e
             if self.expensive_angular_momentum_tracking:
                 self.angmoms[e, :] = self.L
 
@@ -135,23 +147,40 @@ class TwoBodyProblem:
         plt.show()
 
     def plot_energies(self):
-        plt.figure()
-        initial_energy = self.energies[0]
-        relative_energies = np.abs((self.energies - initial_energy) / initial_energy)
-        plt.semilogy(self.times, relative_energies)
-        plt.xlabel('Time [arb]')
-        plt.ylabel('|(E(t)-E0)/E0|')
-        plt.show()
+        if self.expensive_energy_tracking:
+            plt.figure()
+            initial_energy = self.energies[0]
+            relative_energies = np.abs((self.energies - initial_energy) / initial_energy)
+            plt.semilogy(self.times, relative_energies)
+            plt.xlabel('Time [arb]')
+            plt.ylabel('Energy: |(E(t)-E0)/E0|')
+            plt.show()
+        else:
+            raise NotImplementedError('Energy was not tracked.')
+
+    def plot_eccentricity_magnitudes(self):
+        if self.expensive_eccentricity_tracking:
+            plt.figure()
+            e0 = self.eccentricities[0]
+            es = [np.linalg.norm(e)
+                  for e in np.abs(self.eccentricities - e0)]
+            plt.semilogy(self.times, es)
+            plt.xlabel('Time [arb]')
+            plt.ylabel('eccentricity: |(e(t) - e0) / e0|')
+            plt.show()
+        else:
+            raise NotImplementedError('Eccentricity was not tracked.')
 
     def plot_angular_momentum_magnitudes(self):
         if self.expensive_angular_momentum_tracking:
             plt.figure()
             L0 = self.angmoms[0]
             L0norm = np.linalg.norm(L0)
-            Ls = np.abs((self.angmoms - L0) / L0norm)
+            Ls = [np.linalg.norm(L)
+                  for L in np.abs((self.angmoms - L0) / L0norm)]
             plt.semilogy(self.times, Ls)
             plt.xlabel('Time [arb]')
-            plt.ylabel('|(L(t)-L0)/L0|')
+            plt.ylabel('Angular Momentum: |(L(t)-L0)/L0|')
             plt.show()
         else:
             raise NotImplementedError('Angular momentum was not tracked.')
