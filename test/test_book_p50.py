@@ -1,4 +1,5 @@
 import timeit
+import pytest
 from contextlib import contextmanager
 import numpy as np
 
@@ -16,6 +17,7 @@ def my_timeit(name):
 def test_two_body_problem():
     two_body = TwoBodyProblem()
     two_body.t1 = 15.0
+    two_body.expensive_angular_momentum_tracking = False
 
     with my_timeit('two_body_problem.solve') as euler_time:
         two_body.integrate_euler()
@@ -24,5 +26,8 @@ def test_two_body_problem():
 
     two_body.plot_trajectory()
     two_body.plot_energies()
+    with pytest.raises(NotImplementedError) as excinfo:
+        two_body.plot_angular_momentum_magnitudes()
+    assert excinfo.value.args[0] == 'Angular momentum was not tracked.'
 
 
