@@ -75,20 +75,11 @@ class TwoBodyProblem:
         result = K1 + K2 - P
         return result
 
-    def _propagate_state(self):
+    def _propagate_state(self, t):
         self.R1 = self.x[0:3]
         self.R2 = self.x[3:6]
         self.V1 = self.x[6:9]
         self.V2 = self.x[9:12]
-        r3 = np.linalg.norm(self.R2 - self.R1) ** 3
-        self.dxdt[0:3] = self.x[6:9]
-        self.dxdt[3:6] = self.x[9:12]
-        self.dxdt[6:9] = \
-            - self.G * self.masses[0] \
-            * (self.R1 - self.R2) / r3
-        self.dxdt[9:12] = \
-            - self.G * self.masses[1] \
-            * (self.R2 - self.R1) / r3
         if self.expensive_energy_tracking:
             self.E = self.instantaneous_energy()
         if self.expensive_eccentricity_tracking:
@@ -96,14 +87,30 @@ class TwoBodyProblem:
         if self.expensive_angular_momentum_tracking:
             self.L = self.instantaneous_angular_momentum()
 
-    def _init_euler(self):
+    def _state_derivatives(self, t, x):
+        R1 = x[0:3]
+        R2 = x[3:6]
+        V1 = x[6:9]
+        V2 = x[9:12]
+        r3 = np.linalg.norm(R2 - R1) ** 3
+        f = np.zeros(len(x))
+        f[0:3] = V1
+        f[3:6] = V2
+        f[6:9] = \
+            - self.G * self.masses[0] \
+            * (R1 - R2) / r3
+        f[9:12] = \
+            - self.G * self.masses[1] \
+            * (R2 - R1) / r3
+        return f
+
+    def _init_fixed_time_step(self):
         # instantaneous quantities
         self.x = np.concatenate((self.R1, self.R2, self.V1, self.V2))
         self.L = self.instantaneous_angular_momentum()
         self.e = self.instantaneous_eccentricity_vector()
         self.E = self.instantaneous_energy()
         state_len = len(self.x)
-        self.dxdt = np.zeros(state_len)
         # plottable arrays
         self.npts = int((self.t1 - self.t0) / self.dt) + 1
         self.times = np.linspace(self.t0, self.t1, self.npts)
@@ -121,14 +128,23 @@ class TwoBodyProblem:
             self.angmoms = np.zeros((self.npts, angmom_len))
             self.angmoms[0, :] = self.L
 
-    def _step_euler(self):
-        self.x += self.dxdt * self.dt
+    def euler_stepper(self, t):
+        self.x += self._state_derivatives(t, self.x) * self.dt
 
-    def integrate_euler(self):
-        self._init_euler()
+    def rk4_stepper(self, t):
+        dt = self.dt
+        dt2 = dt / 2
+        k1 = self._state_derivatives(t, self.x)
+        k2 = self._state_derivatives(t + dt2, self.x + dt2 * k1)
+        k3 = self._state_derivatives(t + dt2, self.x + dt2 * k2)
+        k4 = self._state_derivatives(t + dt,  self.x + dt  * k3)
+        self.x += dt * (k1 + (2 * k2) + (2 * k3) + k4) / 6
+
+    def integrate_fixed_time_step(self, stepper):
+        self._init_fixed_time_step()
         for e, t in enumerate(self.times):
-            self._propagate_state()
-            self._step_euler()
+            self._propagate_state(t)
+            stepper(t)
             self.states[e, :] = self.x
             if self.expensive_energy_tracking:
                 self.energies[e] = self.E

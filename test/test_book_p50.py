@@ -19,10 +19,10 @@ def test_two_body_problem():
     two_body.t1 = 100.0
     # two_body.expensive_angular_momentum_tracking = False
 
-    with my_timeit('two_body_problem.solve') as euler_time:
-        two_body.integrate_euler()
+    with my_timeit('two_body_problem.solve') as integration_time:
+        two_body.integrate_fixed_time_step(two_body.rk4_stepper)
 
-    print(f'\nIntegration wall-clock time: {euler_time()} seconds')
+    print(f'\nIntegration wall-clock time:   {integration_time()} seconds')
     print(f'Simulation time of last step:  {two_body.times[-1]} == {two_body.t1} seconds')
     print(f'orbital period in time units:  {two_body.circular_period()}')
     print(f'number of orbits:              {two_body.times[-1] / two_body.circular_period()}s')
