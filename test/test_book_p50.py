@@ -20,7 +20,7 @@ def test_two_body_problem():
     # two_body.expensive_angular_momentum_tracking = False
 
     with my_timeit('two_body_problem.solve') as integration_time:
-        two_body.integrate_fixed_time_step(two_body.rk4_stepper)
+        two_body.integrate_fixed_time_step(two_body.ab2_stepper)
 
     print(f'\nIntegration wall-clock time:   {integration_time()} seconds')
     print(f'Simulation time of last step:  {two_body.times[-1]} == {two_body.t1} seconds')

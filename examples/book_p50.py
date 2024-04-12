@@ -5,15 +5,26 @@ from dataclasses import dataclass, field
 
 @dataclass
 class TwoBodyProblem:
-    R1 = np.array([1., 0., 0.])
-    R2 = np.array([-1., 0., 0.])
-    V1 = np.array([0., 0.5, 0.])
-    V2 = np.array([0., -0.5, 0.])
-    masses = np.array([1., 1.])
+    # Constants
     G = 1.0
     t0 = 0.0
     t1 = 100.0
     dt = 0.0001
+    masses = np.array([1., 1.])
+    nbodies = 2
+    nstates = 12
+
+    # Initial Conditions
+    R1 = np.array([1., 0., 0.])
+    R2 = np.array([-1., 0., 0.])
+    V1 = np.array([0., 0.5, 0.])
+    V2 = np.array([0., -0.5, 0.])
+
+    # For 2-step methods, require one back derivative
+    # in addition to the current state, x.
+    fnm1 = np.zeros(nstates)
+
+    # Flags affecting running speed.
     expensive_energy_tracking = True
     expensive_angular_momentum_tracking = True
     expensive_eccentricity_tracking = True
@@ -111,11 +122,13 @@ class TwoBodyProblem:
         self.e = self.instantaneous_eccentricity_vector()
         self.E = self.instantaneous_energy()
         state_len = len(self.x)
+
         # plottable arrays
         self.npts = int((self.t1 - self.t0) / self.dt) + 1
         self.times = np.linspace(self.t0, self.t1, self.npts)
         self.states = np.zeros((self.npts, state_len))
         self.states[0, :] = self.x
+
         if self.expensive_energy_tracking:
             self.energies = np.zeros(self.npts)
             self.energies[0] = self.E
@@ -139,6 +152,16 @@ class TwoBodyProblem:
         k3 = self._state_derivatives(t + dt2, self.x + dt2 * k2)
         k4 = self._state_derivatives(t + dt,  self.x + dt  * k3)
         self.x += dt * (k1 + (2 * k2) + (2 * k3) + k4) / 6
+
+    def ab2_stepper(self, t):
+        """2-step Adams-Bashforth algorithm"""
+        if t == self.t0:
+            self.fnm1 = self._state_derivatives(t, self.x)
+            self.rk4_stepper(t)
+        else:
+            fn = self._state_derivatives(t, self.x)
+            self.x += (self.dt / 2) * (3 * fn - self.fnm1)
+            self.fnm1 = fn
 
     def integrate_fixed_time_step(self, stepper):
         self._init_fixed_time_step()
