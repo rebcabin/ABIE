@@ -20,12 +20,20 @@ def test_two_body_problem():
     # two_body.expensive_angular_momentum_tracking = False
 
     with my_timeit('two_body_problem.solve') as integration_time:
-        two_body.integrate_fixed_time_step(two_body.ab2_stepper)
+        two_body.integrate_fixed_time_step(
+            two_body.verlet_stepper)
 
-    print(f'\nIntegration wall-clock time:   {integration_time()} seconds')
-    print(f'Simulation time of last step:  {two_body.times[-1]} == {two_body.t1} seconds')
-    print(f'orbital period in time units:  {two_body.circular_period()}')
-    print(f'number of orbits:              {two_body.times[-1] / two_body.circular_period()}s')
+    print(f'\nIntegration wall-clock time:   '
+          f'{integration_time()} seconds')
+
+    print(f'Simulation time of last step:  '
+          f'{two_body.times[-1]} == {two_body.t1} seconds')
+
+    print(f'Orbital period in time units:  '
+          f'{two_body.circular_period()}')
+
+    print(f'Number of orbits:              '
+          f'{two_body.times[-1] / two_body.circular_period()}s')
 
     two_body.plot_trajectory()
     try:
@@ -46,5 +54,3 @@ def test_two_body_problem():
     # with pytest.raises(NotImplementedError) as excinfo:
     #     two_body.plot_angular_momentum_magnitudes()
     # assert excinfo.value.args[0] == 'Angular momentum was not tracked.'
-
-
