@@ -7,10 +7,10 @@ from typing import ClassVar
 @dataclass
 class TwoBodyProblem:
     """The following attributes are monkey-patched in. Big
-    arrays are held for platting after the integration.
-    After a state update by any of the *_stepper methods,
-    x is x_n. After a call of _propagate_state, E, L, e are
-    current. State derivatives are computed on-the-fly via
+    arrays are held for platting after the integration. After
+    a state update by any of the *_stepper methods, x is x_n.
+    After a call of _propagate_state, R1, R2, V1, V2, E, L, e
+    are current. State derivatives are computed on-the-fly via
     method _state_derivatives.
 
         x               12-vector  (instantaneous state)
@@ -28,11 +28,12 @@ class TwoBodyProblem:
         energies        N-vector   (all energies)
         angmoms         Nx3 array  (all angular-momentum vectors)
         eccentricities  Nx3 array  (all eccentricity vectors)
+
     """
 
     # Class constants
     G: ClassVar[float] = 1.0
-    masses: ClassVar[np.ndarray] = np.array([1., 1.])
+    masses: ClassVar[np.ndarray] = np.array([1.0, 1.0])
     nbodies: ClassVar[int] = 2
     nstates: ClassVar[int] = 12
 
