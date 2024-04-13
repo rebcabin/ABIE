@@ -43,10 +43,10 @@ class TwoBodyProblem:
 
     # Initial Conditions; update these variables in
     # _propagate_state. Also change them in the caller.
-    R1 = np.array([ 1., 0.0, 0.0])
-    R2 = np.array([-1., 0.0, 0.0])
-    V1 = np.array([ 0., 0.5, 0.0])
-    V2 = np.array([0., -0.5, 0.0])
+    R1 = np.array([ 1.0,  0.0, 0.0])
+    R2 = np.array([-1.0,  0.0, 0.0])
+    V1 = np.array([ 0.0,  0.5, 0.0])
+    V2 = np.array([ 0.0, -0.5, 0.0])
 
     # For 2-step methods, require one back derivative
     # in addition to the current state, x.
@@ -75,17 +75,32 @@ class TwoBodyProblem:
         orbiting body is circular. Not valid for even moderate
         eccentricities.
         """
-        r = np.linalg.norm(self.R1 - self.R2)
         m1 = self.masses[0]
         m2 = self.masses[1]
+        r = np.linalg.norm(self.R1 - self.R2)
         result = 2 * np.pi \
                  * np.sqrt(r ** 3 / (self.G * (m1 + m2)))
         return result
 
-    def instantaneous_angular_momentum(self):
+    def instantaneous_energy(self) -> float:
+        speed1 = np.linalg.norm(self.V1)
+        speed2 = np.linalg.norm(self.V2)
         m1 = self.masses[0]
         m2 = self.masses[1]
+        # kinetic energies
+        K1 = 0.5 * m1 * speed1 ** 2
+        K2 = 0.5 * m2 * speed2 ** 2
+        # potential energy
+        r = np.linalg.norm(self.R1 - self.R2)
+        P = - self.G * m1 * m2 / r
+        # total energy
+        result = K1 + K2 + P
+        return result
+
+    def instantaneous_angular_momentum(self):
+        m1 = self.masses[0]
         L1 = m1 * np.cross(self.R1, self.V1)
+        m2 = self.masses[1]
         L2 = m2 * np.cross(self.R2, self.V2)
         result = L1 + L2
         return result
@@ -101,21 +116,6 @@ class TwoBodyProblem:
         p1 = np.cross(v1, np.cross(r1, v1)) / (G * M)
         p2 = r1 / r
         result = p1 - p2
-        return result
-
-    def instantaneous_energy(self) -> float:
-        speed1 = np.linalg.norm(self.V1)
-        speed2 = np.linalg.norm(self.V2)
-        r = np.linalg.norm(self.R1 - self.R2)
-        m1 = self.masses[0]
-        m2 = self.masses[1]
-        # kinetic energies
-        K1 = 0.5 * m1 * speed1 ** 2
-        K2 = 0.5 * m2 * speed2 ** 2
-        # potential energy
-        P = - self.G * m1 * m2 / r
-        # total energy
-        result = K1 + K2 + P
         return result
 
     #  ___                       _
@@ -213,16 +213,22 @@ class TwoBodyProblem:
         """Initialize data for any method of fixed-time step.
         The time step is stored in the pseudoconstant self.dt.
         """
+        # initial conditions
+        self.R1 = np.array([ 1., 0.0, 0.0])
+        self.R2 = np.array([-1., 0.0, 0.0])
+        self.V1 = np.array([ 0., 0.5, 0.0])
+        self.V2 = np.array([0., -0.5, 0.0])
+
         # instantaneous quantities
         self.x = np.concatenate((self.R1, self.R2, self.V1, self.V2))
+        self.E = self.instantaneous_energy()
         self.L = self.instantaneous_angular_momentum()
         self.e = self.instantaneous_eccentricity_vector()
-        self.E = self.instantaneous_energy()
-        state_len = len(self.x)
 
         # plottable arrays
         self.npts = int((self.t1 - self.t0) / self.dt) + 1
         self.times = np.linspace(self.t0, self.t1, self.npts)
+        state_len = len(self.x)
         self.states = np.zeros((self.npts, state_len))
         self.states[0, :] = self.x
 
@@ -230,14 +236,16 @@ class TwoBodyProblem:
         if self.expensive_energy_tracking:
             self.energies = np.zeros(self.npts)
             self.energies[0] = self.E
-        if self.expensive_eccentricity_tracking:
-            eccentricity_vector_len = 3
-            self.eccentricities = np.zeros((self.npts, eccentricity_vector_len))
-            self.eccentricities[0] = self.e
+
         if self.expensive_angular_momentum_tracking:
             angmom_len = 3
             self.angmoms = np.zeros((self.npts, angmom_len))
             self.angmoms[0, :] = self.L
+
+        if self.expensive_eccentricity_tracking:
+            eccentricity_vector_len = 3
+            self.eccentricities = np.zeros((self.npts, eccentricity_vector_len))
+            self.eccentricities[0] = self.e
 
     #  ___ _
     # / __| |_ ___ _ __ _ __  ___ _ _ ___
@@ -292,23 +300,23 @@ class TwoBodyProblem:
         self.V2 = self.x[9:12]
         if self.expensive_energy_tracking:
             self.E = self.instantaneous_energy()
-        if self.expensive_eccentricity_tracking:
-            self.e = self.instantaneous_eccentricity_vector()
         if self.expensive_angular_momentum_tracking:
             self.L = self.instantaneous_angular_momentum()
+        if self.expensive_eccentricity_tracking:
+            self.e = self.instantaneous_eccentricity_vector()
 
     def integrate_fixed_time_step(self, stepper):
         self._init_fixed_time_step()
-        for e, t in enumerate(self.times):
+        for i, t in enumerate(self.times):
             stepper(t)
             self._propagate_state(t)
-            self.states[e, :] = self.x
+            self.states[i, :] = self.x
             if self.expensive_energy_tracking:
-                self.energies[e] = self.E
+                self.energies[i] = self.E
             if self.expensive_angular_momentum_tracking:
-                self.eccentricities[e] = self.e
-            if self.expensive_angular_momentum_tracking:
-                self.angmoms[e, :] = self.L
+                self.angmoms[i, :] = self.L
+            if self.expensive_eccentricity_tracking:
+                self.eccentricities[i, :] = self.e
 
     #  ___ _     _   _
     # | _ \ |___| |_| |_ ___ _ _ ___
@@ -337,19 +345,6 @@ class TwoBodyProblem:
         else:
             raise NotImplementedError('Energy was not tracked.')
 
-    def plot_eccentricity_magnitudes(self):
-        if self.expensive_eccentricity_tracking:
-            plt.figure()
-            e0 = self.eccentricities[0]
-            es = [np.linalg.norm(e)
-                  for e in np.abs(self.eccentricities - e0)]
-            plt.semilogy(self.times, es)
-            plt.xlabel('Time [arb]')
-            plt.ylabel('eccentricity: |(e(t) - e0) / e0|')
-            plt.show()
-        else:
-            raise NotImplementedError('Eccentricity was not tracked.')
-
     def plot_angular_momentum_magnitudes(self):
         if self.expensive_angular_momentum_tracking:
             plt.figure()
@@ -363,3 +358,16 @@ class TwoBodyProblem:
             plt.show()
         else:
             raise NotImplementedError('Angular momentum was not tracked.')
+
+    def plot_eccentricity_magnitudes(self):
+        if self.expensive_eccentricity_tracking:
+            plt.figure()
+            e0 = self.eccentricities[0]
+            es = [np.linalg.norm(e)
+                  for e in np.abs(self.eccentricities - e0)]
+            plt.semilogy(self.times, es)
+            plt.xlabel('Time [arb]')
+            plt.ylabel('eccentricity: |(e(t) - e0) / e0|')
+            plt.show()
+        else:
+            raise NotImplementedError('Eccentricity was not tracked.')
