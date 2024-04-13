@@ -58,10 +58,10 @@ def test_compare_two_body_methods():
     two_body.t1 = 100.0
     two_body.dt = 0.001
 
-    experiment(two_body, 'euler',  two_body.euler_stepper)
-    experiment(two_body, 'rk4',  two_body.rk4_stepper)
-    experiment(two_body, 'ab2',  two_body.ab2_stepper)
-    experiment(two_body, 'verlet', two_body.verlet_stepper)
+    experiment(two_body, 'euler',  two_body.euler_stepper, False)
+    experiment(two_body, 'rk4',  two_body.rk4_stepper, False)
+    experiment(two_body, 'ab2',  two_body.ab2_stepper, False)
+    experiment(two_body, 'verlet', two_body.verlet_stepper, False)
 
 
 def experiment(two_body, name='', stepper=None, plot=True):
@@ -72,10 +72,10 @@ def experiment(two_body, name='', stepper=None, plot=True):
     metrics.take(two_body)
     metrics.print()
     if plot:
-        # two_body.plot_trajectory()
-        # two_body.plot_energies()
-        # two_body.plot_angular_momentum_magnitudes()
-        # two_body.plot_eccentricity_magnitudes()
+        two_body.plot_trajectory()
+        two_body.plot_energies()
+        two_body.plot_angular_momentum_magnitudes()
+        two_body.plot_eccentricity_magnitudes()
         pass
 
 
